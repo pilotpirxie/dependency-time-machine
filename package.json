@@ -7,7 +7,17 @@
   "author": "pilotpirxie <10637666+pilotpirxie@users.noreply.github.com>",
   "license": "MIT",
   "devDependencies": {
+    "@commander-js/extra-typings": "^11.0.0",
     "@types/node": "^20.4.9",
+    "commander": "^11.0.0",
     "typescript": "^5.1.6"
+  },
+  "bin": {
+    "dependency-time-machine": "bin/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "dev": "npm run build && npm install -g . && dependency-time-machine"
   }
 }
