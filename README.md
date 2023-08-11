@@ -1,4 +1,4 @@
-<div align="center">
+<div style="text-align: center">
     <img width="160" height="216" src="img/clocks.png" alt="Clocks">
 </div>
 
@@ -60,6 +60,15 @@ npx dependency-time-machine --update --install --exclude-file exclude.txt
 
 ## Requirements
 - Node.js >= 14
+
+## How it works
+Tool reads `package.json` file and finds all dependencies. Then it resolves all the versions, sort them by date and
+finds the latest version of the next dependency before finding another. Searching in version groups allows to spot
+incompatibility between dependencies. Built-in cache and auto mode allows to update dependencies faster.
+
+<div style="text-align: center">
+    <img src="img/diagram.png" alt="Diagram">
+</div>
 
 ## Options
 ```shell
