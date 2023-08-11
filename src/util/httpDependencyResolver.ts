@@ -1,5 +1,5 @@
-import { Dependency } from "../types/dependency";
-import { RegistryData } from "../types/registry";
+import { Dependency } from "../types/Dependency";
+import { RegistryData } from "../types/RegistryData";
 import axios from "axios";
 
 export default async function httpDependencyResolver(

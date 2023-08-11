@@ -1,15 +1,13 @@
 #!/usr/bin/env node
 import fs from "fs";
 import path from "path";
-import { Dependency } from "./types/dependency";
+import child_process from "child_process";
+import { program } from "@commander-js/extra-typings";
+
+import { Dependency } from "./types/Dependency";
+import { LocalDependencies } from "./types/LocalDependencies";
 import httpDependencyResolver from "./util/httpDependencyResolver";
 import { compareVersions, isValidVersion } from "./util/semver";
-import { program } from "@commander-js/extra-typings";
-import child_process from "child_process";
-
-type LocalDependencies = {
-  [key: string]: string;
-};
 
 function getExcludedDependencies({
   exclude,
