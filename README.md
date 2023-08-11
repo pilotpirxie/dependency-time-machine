@@ -58,6 +58,9 @@ or use `--exclude-file` option to exclude dependencies from file:
 npx dependency-time-machine --update --install --exclude-file exclude.txt
 ```
 
+## Requirements
+- Node.js >= 14
+
 ## Options
 ```shell
 Usage: dependency-time-machine [options]
