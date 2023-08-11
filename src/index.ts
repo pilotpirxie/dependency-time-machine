@@ -11,8 +11,8 @@ program
   .description('Tool to automatically update dependencies one-by-one in the time order')
   .option('-p, --packageFile <file>', 'Path to package.json file', "package.json")
   .option('-j, --json', 'Output as JSON')
-  .parse()
-  .action(async ({json, packageFile}) => {
+  .option('-u, --update', 'Update package.json file with new versions')
+  .action(async ({json, packageFile, update}) => {
     const currentDir = process.cwd();
     const packageJson = JSON.parse(fs.readFileSync(path.join(currentDir, packageFile), 'utf-8'));
 
@@ -70,4 +70,21 @@ program
     } else {
       console.log('All dependencies are up to date!');
     }
-  });
+
+    if (update) {
+      for (const dependency of outdatedDependencies) {
+        const [major, minor, patch] = parseVersion(dependency.version);
+
+        if (packageJson.dependencies[dependency.name]) {
+          packageJson.dependencies[dependency.name] = dependency.version;
+        } else if (packageJson.devDependencies[dependency.name]) {
+        packageJson.devDependencies[dependency.name] = dependency.version;
+        } else if (packageJson.peerDependencies[dependency.name]) {
+          packageJson.peerDependencies[dependency.name] = dependency.version;
+        }
+      }
+
+      fs.writeFileSync(path.join(currentDir, packageFile), JSON.stringify(packageJson, null, 2));
+    }
+  })
+  .parse();
