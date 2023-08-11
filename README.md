@@ -1,4 +1,9 @@
+<div align="center">
+    <img width="160" height="216" src="img/clocks.png" alt="Clocks">
+</div>
+
 # dependency-time-machine
+
 Tool to automatically update dependencies one-by-one in the chronological order. Most dependencies are compatible with other packages
 from the similar or pastime. This tool helps to find the latest compatible version of the dependencies and update them.
 
