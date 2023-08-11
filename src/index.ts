@@ -16,7 +16,6 @@ function getDependenciesFromPackageJson({
 }: {
   packageFilePath: string;
 }): LocalDependencies {
-  const currentDir = process.cwd();
   const packageJson = JSON.parse(fs.readFileSync(packageFilePath, "utf-8"));
 
   const dependencies = packageJson.dependencies;
@@ -99,11 +98,17 @@ function updatePackageFile({
   const packageJson = JSON.parse(fs.readFileSync(packageFilePath, "utf-8"));
   const { dependencies, devDependencies, peerDependencies } = packageJson;
 
-  if (dependencies[dependencyToUpdate.name]) {
+  if (dependencies && dependencies.hasOwnProperty(dependencyToUpdate.name)) {
     dependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
-  } else if (devDependencies[dependencyToUpdate.name]) {
+  } else if (
+    devDependencies &&
+    devDependencies.hasOwnProperty(dependencyToUpdate.name)
+  ) {
     devDependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
-  } else if (peerDependencies[dependencyToUpdate.name]) {
+  } else if (
+    peerDependencies &&
+    peerDependencies.hasOwnProperty(dependencyToUpdate.name)
+  ) {
     peerDependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
   }
 
@@ -275,6 +280,8 @@ program
                 installScript,
                 currentDir,
               });
+
+              process.exit(1);
             }
           }
         }
