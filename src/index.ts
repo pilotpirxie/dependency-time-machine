@@ -60,7 +60,7 @@ async function getRemoteDependencies(
     .reverse();
 
   if (cache) {
-    fs.mkdirSync(cacheFilePath, {
+    fs.mkdirSync(path.dirname(cacheFilePath), {
       recursive: true,
     });
 
@@ -143,79 +143,111 @@ program
       const currentDir = process.cwd();
       const packageFilePath = path.join(currentDir, packageFile);
 
-      const localDependencies = getDependenciesFromPackageJson(packageFilePath);
-      let sortedRemoteDependencies = await getRemoteDependencies(
-        localDependencies,
-        !!cache,
-        path.join(currentDir, cacheFile),
-      );
+      do {
+        const localDependencies =
+          getDependenciesFromPackageJson(packageFilePath);
+        let sortedRemoteDependencies = await getRemoteDependencies(
+          localDependencies,
+          !!cache,
+          path.join(currentDir, cacheFile),
+        );
 
-      let dependencyToUpdate = null;
-      const timelineToPrint: Dependency[] = [];
-      for (let i = 0; i < sortedRemoteDependencies.length; i++) {
-        const dependency = sortedRemoteDependencies[i];
-        if (
-          compareVersions(
-            dependency.version,
-            localDependencies[dependency.name],
-          ) > 0
-        ) {
-          if (dependencyToUpdate === null) {
-            dependencyToUpdate = dependency;
-            timelineToPrint.push(...sortedRemoteDependencies.slice(i));
-          }
-
-          if (dependencyToUpdate.name !== dependency.name) {
-            break;
-          }
-
+        let previousDependency: Dependency | null = null;
+        let dependencyToUpdate = null;
+        const timelineToPrint: Dependency[] = [];
+        for (let i = 0; i < sortedRemoteDependencies.length; i++) {
+          const dependency = sortedRemoteDependencies[i];
           if (
-            compareVersions(dependency.version, dependencyToUpdate.version) > 0
+            compareVersions(
+              dependency.version,
+              localDependencies[dependency.name],
+            ) > 0
           ) {
-            dependencyToUpdate = dependency;
+            if (dependencyToUpdate === null) {
+              previousDependency = {
+                name: dependency.name,
+                version: localDependencies[dependency.name],
+                published: new Date(),
+              };
+              dependencyToUpdate = dependency;
+              timelineToPrint.push(...sortedRemoteDependencies.slice(i));
+            }
+
+            if (dependencyToUpdate.name !== dependency.name) {
+              break;
+            }
+
+            if (
+              compareVersions(dependency.version, dependencyToUpdate.version) >
+              0
+            ) {
+              dependencyToUpdate = dependency;
+            }
           }
         }
-      }
 
-      if (timeline) {
-        console.log(JSON.stringify(timelineToPrint, null, 2));
-        return;
-      }
-
-      if (dependencyToUpdate === null) {
-        if (json) {
-          console.log(JSON.stringify({}));
+        if (timeline) {
+          console.log(JSON.stringify(timelineToPrint, null, 2));
           return;
         }
 
-        console.log("No new versions found");
-        return;
-      }
+        if (dependencyToUpdate === null) {
+          if (json) {
+            console.log(JSON.stringify({}));
+            return;
+          }
 
-      if (json) {
-        console.log(JSON.stringify(dependencyToUpdate, null, 2));
-      } else {
-        console.log(
-          "New version found:",
-          `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-          `(${dependencyToUpdate.published})`,
-        );
-      }
+          console.log("No new versions found");
+          process.exit(0);
+          return;
+        }
 
-      if (update) {
-        updatePackageFile(dependencyToUpdate, !!json, packageFilePath);
-      }
-
-      if (install) {
-        child_process.execSync(`cd ${currentDir} && ${installScript} && cd -`);
-
-        if (!json) {
+        if (json) {
+          console.log(JSON.stringify(dependencyToUpdate, null, 2));
+        } else {
           console.log(
-            "Installed",
+            "New version found:",
             `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
+            `(${dependencyToUpdate.published})`,
           );
         }
-      }
+
+        if (update) {
+          updatePackageFile(dependencyToUpdate, !!json, packageFilePath);
+        }
+
+        if (install) {
+          console.log(
+            "Installing",
+            `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
+          );
+          child_process.execSync(
+            `cd ${currentDir} && ${installScript} && cd -`,
+          );
+
+          if (!json) {
+            console.log(
+              "Installed",
+              `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
+            );
+          }
+
+          if (auto) {
+            try {
+              console.log("Testing");
+              child_process.execSync(
+                `cd ${currentDir} && ${testScript} && cd -`,
+              );
+            } catch (e) {
+              console.log("Test failed");
+              if (previousDependency) {
+                console.log("Reverting");
+                updatePackageFile(previousDependency, !!json, packageFilePath);
+              }
+            }
+          }
+        }
+      } while (auto);
     },
   )
   .parse();
