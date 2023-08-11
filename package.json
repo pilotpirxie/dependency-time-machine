@@ -1,6 +1,6 @@
 {
   "name": "dependency-time-machine",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Tool to automatically update dependencies one-by-one in the time order",
   "main": "./bin/index.js",
   "repository": "https://github.com/pilotpirxie/dependency-time-machine.git",
