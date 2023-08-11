@@ -2,24 +2,28 @@
   "name": "dependency-time-machine",
   "version": "1.0.0",
   "description": "Tool to automatically update dependencies one-by-one in the time order",
-  "main": "index.js",
+  "main": "./bin/index.js",
   "repository": "https://github.com/pilotpirxie/dependency-time-machine.git",
   "author": "pilotpirxie <10637666+pilotpirxie@users.noreply.github.com>",
   "license": "MIT",
   "devDependencies": {
     "@commander-js/extra-typings": "^11.0.0",
-    "@types/node": "^20.4.9",
+    "@types/node": "18.17.5",
+    "axios": "^1.4.0",
     "commander": "^11.0.0",
     "prettier": "3.0.1",
     "typescript": "^5.1.6"
   },
   "bin": {
-    "dependency-time-machine": "bin/index.js"
+    "dependency-time-machine": "./bin/index.js"
   },
   "scripts": {
     "build": "tsc",
     "test": "exit 0",
     "dev": "npm run build && npm install -g . && dependency-time-machine",
     "prettier": "prettier --write ."
-  }
+  },
+  "files": [
+    "bin/**/*"
+  ]
 }
