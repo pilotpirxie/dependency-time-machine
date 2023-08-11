@@ -3,9 +3,11 @@ const strictVersionRegex = /^\D*(\d+)\.(\d+)\.(\d+)$/;
 
 export const isValidVersion = (version: string): boolean => {
   return Boolean(version.match(strictVersionRegex));
-}
+};
 
-export const parseVersion = (version: string): [number, number, number, string?] => {
+export const parseVersion = (
+  version: string,
+): [number, number, number, string?] => {
   const match = version.match(strictVersionRegex);
 
   if (!match) {

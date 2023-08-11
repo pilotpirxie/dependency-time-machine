@@ -1,11 +1,13 @@
-import {Dependency} from "../types/dependency";
-import {RegistryData} from "../types/registry";
+import { Dependency } from "../types/dependency";
+import { RegistryData } from "../types/registry";
 
-export default async function httpDependencyResolver(name: string): Promise<Dependency[]> {
+export default async function httpDependencyResolver(
+  name: string,
+): Promise<Dependency[]> {
   try {
     const response = await fetch(`https://registry.npmjs.org/${name}`);
-    const data = await response.json() as RegistryData;
-    const {time} = data;
+    const data = (await response.json()) as RegistryData;
+    const { time } = data;
 
     const dependencyVersionsWithPublishedDate: Dependency[] = [];
     for (const [version, published] of Object.entries(time)) {
