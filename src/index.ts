@@ -7,6 +7,99 @@ import { compareVersions, isValidVersion } from "./util/semver";
 import { program } from "@commander-js/extra-typings";
 import child_process from "child_process";
 
+type LocalDependencies = {
+  [key: string]: string;
+};
+
+function getDependenciesFromPackageJson(
+  packageFilePath: string,
+): LocalDependencies {
+  const currentDir = process.cwd();
+  const packageJson = JSON.parse(fs.readFileSync(packageFilePath, "utf-8"));
+
+  const dependencies = packageJson.dependencies;
+  const devDependencies = packageJson.devDependencies;
+  const peerDependencies = packageJson.peerDependencies;
+  const optionalDependencies = packageJson.optionalDependencies;
+
+  return {
+    ...dependencies,
+    ...devDependencies,
+    ...peerDependencies,
+    ...optionalDependencies,
+  };
+}
+
+async function getRemoteDependencies(
+  localDependencies: LocalDependencies,
+  cache: boolean,
+  cacheFilePath: string,
+): Promise<Dependency[]> {
+  const cacheExists = fs.existsSync(cacheFilePath);
+  if (cacheExists) {
+    return JSON.parse(fs.readFileSync(cacheFilePath, "utf-8"));
+  }
+
+  let remoteDependencies: Dependency[] = [];
+  const dependenciesCount = Object.keys(localDependencies).length;
+  for (let i = 0; i < dependenciesCount; i++) {
+    const [name] = Object.entries(localDependencies)[i];
+    console.log(i, "/", dependenciesCount, " - ", name);
+    const newDependency = await httpDependencyResolver(name);
+    remoteDependencies.push(...newDependency);
+  }
+
+  remoteDependencies = remoteDependencies.filter((dependency) =>
+    isValidVersion(dependency.version),
+  );
+
+  const sortedRemoteDependencies = remoteDependencies
+    .sort((a, b) => {
+      return b.published.getTime() - a.published.getTime();
+    })
+    .reverse();
+
+  if (cache) {
+    fs.mkdirSync(cacheFilePath, {
+      recursive: true,
+    });
+
+    fs.writeFileSync(
+      cacheFilePath,
+      JSON.stringify(sortedRemoteDependencies, null, 2),
+    );
+  }
+
+  return sortedRemoteDependencies;
+}
+
+function updatePackageFile(
+  dependencyToUpdate: Dependency,
+  printJson: boolean,
+  packageFilePath: string,
+) {
+  if (!printJson) {
+    console.log(
+      "Updating",
+      `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
+      "in",
+      packageFilePath,
+    );
+  }
+  const packageJson = JSON.parse(fs.readFileSync(packageFilePath, "utf-8"));
+  const { dependencies, devDependencies, peerDependencies } = packageJson;
+
+  if (dependencies[dependencyToUpdate.name]) {
+    dependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
+  } else if (devDependencies[dependencyToUpdate.name]) {
+    devDependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
+  } else if (peerDependencies[dependencyToUpdate.name]) {
+    peerDependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
+  }
+
+  fs.writeFileSync(packageFilePath, JSON.stringify(packageJson, null, 2));
+}
+
 program
   .name("dependency-time-machine")
   .description(
@@ -48,94 +141,44 @@ program
       auto,
     }) => {
       const currentDir = process.cwd();
-      const packageJson = JSON.parse(
-        fs.readFileSync(path.join(currentDir, packageFile), "utf-8"),
+      const packageFilePath = path.join(currentDir, packageFile);
+
+      const localDependencies = getDependenciesFromPackageJson(packageFilePath);
+      let sortedRemoteDependencies = await getRemoteDependencies(
+        localDependencies,
+        !!cache,
+        path.join(currentDir, cacheFile),
       );
 
-      const dependencies = packageJson.dependencies;
-      const devDependencies = packageJson.devDependencies;
-      const peerDependencies = packageJson.peerDependencies;
-      const optionalDependencies = packageJson.optionalDependencies;
-      const allDependencies: { [name: string]: string } = {
-        ...dependencies,
-        ...devDependencies,
-        ...peerDependencies,
-        ...optionalDependencies,
-      };
-
-      let sortedDependencies: Dependency[] = [];
-
-      const cacheExists = fs.existsSync(path.join(currentDir, cacheFile));
-      if (cacheExists) {
-        sortedDependencies = JSON.parse(
-          fs.readFileSync(path.join(currentDir, cacheFile), "utf-8"),
-        );
-      } else {
-        let allDependencyVersionsWithPublishedDate: Dependency[] = [];
-        const totalDependencies = Object.keys(allDependencies).length;
-        for (let i = 0; i < totalDependencies; i++) {
-          const [name] = Object.entries(allDependencies)[i];
-
-          console.log(i, "/", totalDependencies, " - ", name);
-
-          const newDependency = await httpDependencyResolver(name);
-
-          allDependencyVersionsWithPublishedDate.push(...newDependency);
-        }
-
-        allDependencyVersionsWithPublishedDate =
-          allDependencyVersionsWithPublishedDate.filter((dependency) =>
-            isValidVersion(dependency.version),
-          );
-
-        sortedDependencies = allDependencyVersionsWithPublishedDate
-          .sort((a, b) => {
-            return b.published.getTime() - a.published.getTime();
-          })
-          .reverse();
-
-        if (cache) {
-          fs.mkdirSync(path.join(currentDir, path.dirname(cacheFile)), {
-            recursive: true,
-          });
-
-          fs.writeFileSync(
-            path.join(currentDir, cacheFile),
-            JSON.stringify(sortedDependencies, null, 2),
-          );
-        }
-      }
-
       let dependencyToUpdate = null;
-      const depTimeline: Dependency[] = [];
-      for (let i = 0; i < sortedDependencies.length; i++) {
-        const dependency = sortedDependencies[i];
+      const timelineToPrint: Dependency[] = [];
+      for (let i = 0; i < sortedRemoteDependencies.length; i++) {
+        const dependency = sortedRemoteDependencies[i];
         if (
           compareVersions(
             dependency.version,
-            allDependencies[dependency.name],
+            localDependencies[dependency.name],
           ) > 0
         ) {
           if (dependencyToUpdate === null) {
             dependencyToUpdate = dependency;
-            depTimeline.push(...sortedDependencies.slice(i));
+            timelineToPrint.push(...sortedRemoteDependencies.slice(i));
           }
 
-          if (dependencyToUpdate.name === dependency.name) {
-            if (
-              compareVersions(dependency.version, dependencyToUpdate.version) >
-              0
-            ) {
-              dependencyToUpdate = dependency;
-            }
-          } else {
+          if (dependencyToUpdate.name !== dependency.name) {
             break;
+          }
+
+          if (
+            compareVersions(dependency.version, dependencyToUpdate.version) > 0
+          ) {
+            dependencyToUpdate = dependency;
           }
         }
       }
 
       if (timeline) {
-        console.log(JSON.stringify(depTimeline, null, 2));
+        console.log(JSON.stringify(timelineToPrint, null, 2));
         return;
       }
 
@@ -160,28 +203,7 @@ program
       }
 
       if (update) {
-        if (!json) {
-          console.log(
-            "Updating",
-            `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-            "in",
-            packageFile,
-          );
-        }
-
-        if (dependencies[dependencyToUpdate.name]) {
-          dependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
-        } else if (devDependencies[dependencyToUpdate.name]) {
-          devDependencies[dependencyToUpdate.name] = dependencyToUpdate.version;
-        } else if (peerDependencies[dependencyToUpdate.name]) {
-          peerDependencies[dependencyToUpdate.name] =
-            dependencyToUpdate.version;
-        }
-
-        fs.writeFileSync(
-          path.join(currentDir, packageFile),
-          JSON.stringify(packageJson, null, 2),
-        );
+        updatePackageFile(dependencyToUpdate, !!json, packageFilePath);
       }
 
       if (install) {
