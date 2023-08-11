@@ -11,9 +11,11 @@ type LocalDependencies = {
   [key: string]: string;
 };
 
-function getDependenciesFromPackageJson(
-  packageFilePath: string,
-): LocalDependencies {
+function getDependenciesFromPackageJson({
+  packageFilePath,
+}: {
+  packageFilePath: string;
+}): LocalDependencies {
   const currentDir = process.cwd();
   const packageJson = JSON.parse(fs.readFileSync(packageFilePath, "utf-8"));
 
@@ -30,11 +32,15 @@ function getDependenciesFromPackageJson(
   };
 }
 
-async function getRemoteDependencies(
-  localDependencies: LocalDependencies,
-  cache: boolean,
-  cacheFilePath: string,
-): Promise<Dependency[]> {
+async function getRemoteDependencies({
+  localDependencies,
+  cache,
+  cacheFilePath,
+}: {
+  localDependencies: LocalDependencies;
+  cache: boolean;
+  cacheFilePath: string;
+}): Promise<Dependency[]> {
   const cacheExists = fs.existsSync(cacheFilePath);
   if (cacheExists) {
     return JSON.parse(fs.readFileSync(cacheFilePath, "utf-8"));
@@ -73,11 +79,15 @@ async function getRemoteDependencies(
   return sortedRemoteDependencies;
 }
 
-function updatePackageFile(
-  dependencyToUpdate: Dependency,
-  printJson: boolean,
-  packageFilePath: string,
-) {
+function updatePackageFile({
+  packageFilePath,
+  dependencyToUpdate,
+  printJson,
+}: {
+  dependencyToUpdate: Dependency;
+  printJson: boolean;
+  packageFilePath: string;
+}) {
   if (!printJson) {
     console.log(
       "Updating",
@@ -98,6 +108,23 @@ function updatePackageFile(
   }
 
   fs.writeFileSync(packageFilePath, JSON.stringify(packageJson, null, 2));
+}
+
+function installDependency({
+  installScript,
+  printJson,
+  currentDir,
+}: {
+  installScript: string;
+  currentDir: string;
+  printJson: boolean;
+}) {
+  console.log("Installing new version");
+  child_process.execSync(`cd ${currentDir} && ${installScript} && cd -`);
+
+  if (!printJson) {
+    console.log("Installed");
+  }
 }
 
 program
@@ -144,13 +171,14 @@ program
       const packageFilePath = path.join(currentDir, packageFile);
 
       do {
-        const localDependencies =
-          getDependenciesFromPackageJson(packageFilePath);
-        let sortedRemoteDependencies = await getRemoteDependencies(
+        const localDependencies = getDependenciesFromPackageJson({
+          packageFilePath,
+        });
+        let sortedRemoteDependencies = await getRemoteDependencies({
           localDependencies,
-          !!cache,
-          path.join(currentDir, cacheFile),
-        );
+          cache: !!cache || !!auto,
+          cacheFilePath: path.join(currentDir, cacheFile),
+        });
 
         let previousDependency: Dependency | null = null;
         let dependencyToUpdate = null;
@@ -212,38 +240,41 @@ program
           );
         }
 
-        if (update) {
-          updatePackageFile(dependencyToUpdate, !!json, packageFilePath);
+        if (update || auto || install) {
+          updatePackageFile({
+            printJson: !!json,
+            dependencyToUpdate,
+            packageFilePath,
+          });
         }
 
-        if (install) {
-          console.log(
-            "Installing",
-            `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-          );
-          child_process.execSync(
-            `cd ${currentDir} && ${installScript} && cd -`,
-          );
+        if (install || auto) {
+          installDependency({
+            printJson: !!json,
+            installScript,
+            currentDir,
+          });
+        }
 
-          if (!json) {
-            console.log(
-              "Installed",
-              `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-            );
-          }
+        if (auto) {
+          try {
+            console.log("Testing new version");
+            child_process.execSync(`cd ${currentDir} && ${testScript} && cd -`);
+          } catch (e) {
+            console.log("Test failed");
+            if (previousDependency) {
+              console.log("Reverting to previous version");
+              updatePackageFile({
+                dependencyToUpdate: previousDependency,
+                printJson: !!json,
+                packageFilePath,
+              });
 
-          if (auto) {
-            try {
-              console.log("Testing");
-              child_process.execSync(
-                `cd ${currentDir} && ${testScript} && cd -`,
-              );
-            } catch (e) {
-              console.log("Test failed");
-              if (previousDependency) {
-                console.log("Reverting");
-                updatePackageFile(previousDependency, !!json, packageFilePath);
-              }
+              installDependency({
+                printJson: !!json,
+                installScript,
+                currentDir,
+              });
             }
           }
         }
