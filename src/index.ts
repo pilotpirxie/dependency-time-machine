@@ -11,6 +11,33 @@ type LocalDependencies = {
   [key: string]: string;
 };
 
+function getExcludedDependencies({
+  exclude,
+  excludeFilePath,
+}: {
+  exclude: string;
+  excludeFilePath: string;
+}): string[] {
+  const excludedDependencies: string[] = [];
+
+  if (
+    excludeFilePath &&
+    excludeFilePath.length > 0 &&
+    fs.existsSync(excludeFilePath)
+  ) {
+    const excludeFileContent = fs.readFileSync(excludeFilePath, "utf-8");
+    const excludeFileDependencies = excludeFileContent.split("\n");
+    excludedDependencies.push(...excludeFileDependencies);
+  }
+
+  if (exclude && exclude.length > 0) {
+    const excludeDependencies = exclude.split(",");
+    excludedDependencies.push(...excludeDependencies);
+  }
+
+  return excludedDependencies;
+}
+
 function getDependenciesFromPackageJson({
   packageFilePath,
 }: {
@@ -35,10 +62,12 @@ async function getRemoteDependencies({
   localDependencies,
   cache,
   cacheFilePath,
+  excludedDependencies,
 }: {
   localDependencies: LocalDependencies;
   cache: boolean;
   cacheFilePath: string;
+  excludedDependencies: string[];
 }): Promise<Dependency[]> {
   const cacheExists = fs.existsSync(cacheFilePath);
   if (cacheExists) {
@@ -49,7 +78,16 @@ async function getRemoteDependencies({
   const dependenciesCount = Object.keys(localDependencies).length;
   for (let i = 0; i < dependenciesCount; i++) {
     const [name] = Object.entries(localDependencies)[i];
-    console.log(i, "/", dependenciesCount, " - ", name);
+    console.log(
+      i,
+      "/",
+      dependenciesCount,
+      name,
+      excludedDependencies.includes(name) ? "(excluded)" : "",
+    );
+    if (excludedDependencies.includes(name)) {
+      continue;
+    }
     const newDependency = await httpDependencyResolver(name);
     remoteDependencies.push(...newDependency);
   }
@@ -81,20 +119,16 @@ async function getRemoteDependencies({
 function updatePackageFile({
   packageFilePath,
   dependencyToUpdate,
-  printJson,
 }: {
   dependencyToUpdate: Dependency;
-  printJson: boolean;
   packageFilePath: string;
 }) {
-  if (!printJson) {
-    console.log(
-      "Updating",
-      `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-      "in",
-      packageFilePath,
-    );
-  }
+  console.log(
+    "Updating",
+    `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
+    "in",
+    packageFilePath,
+  );
   const packageJson = JSON.parse(fs.readFileSync(packageFilePath, "utf-8"));
   const { dependencies, devDependencies, peerDependencies } = packageJson;
 
@@ -117,19 +151,46 @@ function updatePackageFile({
 
 function installDependency({
   installScript,
-  printJson,
   currentDir,
 }: {
   installScript: string;
   currentDir: string;
-  printJson: boolean;
 }) {
   console.log("Installing new version");
   child_process.execSync(`cd ${currentDir} && ${installScript} && cd -`);
+  console.log("Installed");
+}
 
-  if (!printJson) {
-    console.log("Installed");
+function runTest({
+  testScript,
+  currentDir,
+}: {
+  testScript: string;
+  currentDir: string;
+}) {
+  console.log("Testing new version");
+  child_process.execSync(`cd ${currentDir} && ${testScript} && cd -`);
+  console.log("Test passed");
+}
+
+function close({
+  auto,
+  cache,
+  cacheFile,
+  currentDir,
+}: {
+  auto: boolean;
+  cache: boolean;
+  cacheFile: string;
+  currentDir: string;
+}) {
+  if (auto && !cache) {
+    console.log("Cleaning up");
+    fs.unlinkSync(path.join(currentDir, cacheFile));
   }
+
+  console.log("Done");
+  process.exit(0);
 }
 
 program
@@ -142,7 +203,6 @@ program
     "Path to package.json file",
     "package.json",
   )
-  .option("-j, --json", "Output as JSON")
   .option("-u, --update", "Update package.json file with new versions")
   .option(
     "-is, --install-script <command>",
@@ -159,9 +219,13 @@ program
     "Cache file",
     "./.dependency-time-machine/cache.json",
   )
+  .option(
+    "-e, --exclude <dependency>",
+    "Exclude dependency from update, separated by comma",
+  )
+  .option("-x, --exclude-file <file>", "Exclude dependencies from file", "")
   .action(
     async ({
-      json,
       packageFile,
       update,
       installScript,
@@ -171,11 +235,19 @@ program
       cache,
       cacheFile,
       auto,
+      exclude,
+      excludeFile,
     }) => {
       const currentDir = process.cwd();
       const packageFilePath = path.join(currentDir, packageFile);
 
       do {
+        const excludedDependencies = getExcludedDependencies({
+          exclude: exclude || "",
+          excludeFilePath: excludeFile
+            ? path.join(currentDir, excludeFile)
+            : "",
+        });
         const localDependencies = getDependenciesFromPackageJson({
           packageFilePath,
         });
@@ -183,6 +255,7 @@ program
           localDependencies,
           cache: !!cache || !!auto,
           cacheFilePath: path.join(currentDir, cacheFile),
+          excludedDependencies,
         });
 
         let previousDependency: Dependency | null = null;
@@ -225,29 +298,24 @@ program
         }
 
         if (dependencyToUpdate === null) {
-          if (json) {
-            console.log(JSON.stringify({}));
-            return;
-          }
-
           console.log("No new versions found");
-          process.exit(0);
+          close({
+            auto: !!auto,
+            cache: !!cache,
+            cacheFile,
+            currentDir,
+          });
           return;
         }
 
-        if (json) {
-          console.log(JSON.stringify(dependencyToUpdate, null, 2));
-        } else {
-          console.log(
-            "New version found:",
-            `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-            `(${dependencyToUpdate.published})`,
-          );
-        }
+        console.log(
+          "New version found:",
+          `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
+          `(${dependencyToUpdate.published})`,
+        );
 
         if (update || auto || install) {
           updatePackageFile({
-            printJson: !!json,
             dependencyToUpdate,
             packageFilePath,
           });
@@ -255,7 +323,6 @@ program
 
         if (install || auto) {
           installDependency({
-            printJson: !!json,
             installScript,
             currentDir,
           });
@@ -263,20 +330,19 @@ program
 
         if (auto) {
           try {
-            console.log("Testing new version");
-            child_process.execSync(`cd ${currentDir} && ${testScript} && cd -`);
+            runTest({
+              testScript,
+              currentDir,
+            });
           } catch (e) {
-            console.log("Test failed");
             if (previousDependency) {
-              console.log("Reverting to previous version");
+              console.log("Test failed. Reverting to the previous version");
               updatePackageFile({
                 dependencyToUpdate: previousDependency,
-                printJson: !!json,
                 packageFilePath,
               });
 
               installDependency({
-                printJson: !!json,
                 installScript,
                 currentDir,
               });
