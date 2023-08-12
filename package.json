@@ -10,8 +10,11 @@
     "commander": "^7.2.0"
   },
   "devDependencies": {
+    "@types/jest": "^25.2.3",
     "@types/node": "10.17.60",
+    "jest": "^25.5.4",
     "prettier": "2.8.8",
+    "ts-jest": "^25.5.1",
     "typescript": "^4.9.5"
   },
   "bin": {
@@ -19,7 +22,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "test": "exit 0",
+    "test": "jest",
     "dev": "npm run build && npm install -g .",
     "prettier": "prettier --write ."
   },
