@@ -1,15 +1,38 @@
 import { Dependency } from "../types/Dependency";
 import { RegistryData } from "../types/RegistryData";
-import axios from "axios";
+import { get } from "https";
+
+function fetchJson<T>(url: string): Promise<T> {
+  return new Promise((resolve, reject) => {
+    get(url, (response) => {
+      let data = "";
+
+      response.on("data", (chunk) => {
+        data += chunk;
+      });
+
+      response.on("end", () => {
+        try {
+          const parsedData = JSON.parse(data);
+          resolve(parsedData as T);
+        } catch (error) {
+          reject(error as Error);
+        }
+      });
+    }).on("error", (error) => {
+      reject(error);
+    });
+  });
+}
 
 export default async function httpDependencyResolver(
-  name: string,
+  name: string
 ): Promise<Dependency[]> {
   try {
-    const response = await axios.get<RegistryData>(
-      `https://registry.npmjs.org/${name}`,
+    const response = await fetchJson<RegistryData>(
+      `https://registry.npmjs.org/${name}`
     );
-    const { time } = response.data;
+    const { time } = response;
 
     const dependencyVersionsWithPublishedDate: Dependency[] = [];
     for (const [version, published] of Object.entries(time)) {

@@ -2,7 +2,7 @@
 import fs from "fs";
 import path from "path";
 import child_process from "child_process";
-import { program } from "@commander-js/extra-typings";
+import { program } from "commander";
 
 import { Dependency } from "./types/Dependency";
 import { LocalDependencies } from "./types/LocalDependencies";
@@ -72,16 +72,15 @@ async function getRemoteDependencies({
     return JSON.parse(fs.readFileSync(cacheFilePath, "utf-8"));
   }
 
+  console.log("Fetching remote dependencies...");
   let remoteDependencies: Dependency[] = [];
   const dependenciesCount = Object.keys(localDependencies).length;
   for (let i = 0; i < dependenciesCount; i++) {
     const [name] = Object.entries(localDependencies)[i];
     console.log(
-      i,
-      "/",
-      dependenciesCount,
-      name,
-      excludedDependencies.includes(name) ? "(excluded)" : "",
+      `${i}/${dependenciesCount} ${name} ${
+        excludedDependencies.includes(name) ? "(excluded)" : ""
+      }`
     );
     if (excludedDependencies.includes(name)) {
       continue;
@@ -91,7 +90,7 @@ async function getRemoteDependencies({
   }
 
   remoteDependencies = remoteDependencies.filter((dependency) =>
-    isValidVersion(dependency.version),
+    isValidVersion(dependency.version)
   );
 
   const sortedRemoteDependencies = remoteDependencies
@@ -107,7 +106,7 @@ async function getRemoteDependencies({
 
     fs.writeFileSync(
       cacheFilePath,
-      JSON.stringify(sortedRemoteDependencies, null, 2),
+      JSON.stringify(sortedRemoteDependencies, null, 2)
     );
   }
 
@@ -122,10 +121,7 @@ function updatePackageFile({
   packageFilePath: string;
 }) {
   console.log(
-    "Updating",
-    `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-    "in",
-    packageFilePath,
+    `Updating ${dependencyToUpdate.name}@${dependencyToUpdate.version} in ${packageFilePath}...`
   );
   const packageJson = JSON.parse(fs.readFileSync(packageFilePath, "utf-8"));
   const { dependencies, devDependencies, peerDependencies } = packageJson;
@@ -194,18 +190,18 @@ function close({
 program
   .name("dependency-time-machine")
   .description(
-    "Tool to automatically update dependencies one-by-one in the time order",
+    "Tool to automatically update dependencies one-by-one in the time order"
   )
   .option(
     "-p, --packageFile <file>",
     "Path to package.json file",
-    "package.json",
+    "package.json"
   )
   .option("-u, --update", "Update package.json file with new versions")
   .option(
     "-is, --install-script <command>",
     "Install with script",
-    "npm install",
+    "npm install"
   )
   .option("-ts, --test-script <command>", "Test command", "npm test")
   .option("-i, --install", "Install with script")
@@ -215,141 +211,136 @@ program
   .option(
     "-cf, --cache-file <file>",
     "Cache file",
-    "./.dependency-time-machine/cache.json",
+    "./.dependency-time-machine/cache.json"
   )
   .option(
     "-e, --exclude <dependency>",
-    "Exclude dependency from update, separated by comma",
+    "Exclude dependency from update, separated by comma"
   )
   .option("-x, --exclude-file <file>", "Exclude dependencies from file", "")
-  .action(
-    async ({
-      packageFile,
-      update,
-      installScript,
-      testScript,
-      timeline,
-      install,
-      cache,
-      cacheFile,
-      auto,
-      exclude,
-      excludeFile,
-    }) => {
-      const currentDir = process.cwd();
-      const packageFilePath = path.join(currentDir, packageFile);
+  .action(async (program) => {
+    const packageFile = program.packageFile as string;
+    const installScript = program.installScript as string;
+    const testScript = program.testScript as string;
+    const cache = program.cache as boolean | undefined;
+    const cacheFile = program.cacheFile as string;
+    const exclude = program.exclude as string | undefined;
+    const excludeFile = program.excludeFile as string;
+    const auto = program.auto as boolean | undefined;
+    const update = program.update as boolean | undefined;
+    const install = program.install as boolean | undefined;
+    const timeline = program.timeline as boolean | undefined;
 
-      do {
-        const excludedDependencies = getExcludedDependencies({
-          exclude: exclude || "",
-          excludeFilePath: excludeFile
-            ? path.join(currentDir, excludeFile)
-            : "",
+    const currentDir = process.cwd();
+    const packageFilePath = path.join(currentDir, packageFile);
+
+    do {
+      const excludedDependencies = getExcludedDependencies({
+        exclude: exclude || "",
+        excludeFilePath: excludeFile ? path.join(currentDir, excludeFile) : "",
+      });
+      const localDependencies = getDependenciesFromPackageJson({
+        packageFilePath,
+      });
+      let sortedRemoteDependencies = await getRemoteDependencies({
+        localDependencies,
+        cache: !!cache || !!auto,
+        cacheFilePath: path.join(currentDir, cacheFile),
+        excludedDependencies,
+      });
+
+      let previousDependency: Dependency | null = null;
+      let dependencyToUpdate = null;
+      const timelineToPrint: Dependency[] = [];
+      for (let i = 0; i < sortedRemoteDependencies.length; i++) {
+        const dependency = sortedRemoteDependencies[i];
+        if (
+          compareVersions(
+            dependency.version,
+            localDependencies[dependency.name]
+          ) > 0
+        ) {
+          if (dependencyToUpdate === null) {
+            previousDependency = {
+              name: dependency.name,
+              version: localDependencies[dependency.name],
+              published: new Date(),
+            };
+            dependencyToUpdate = dependency;
+            timelineToPrint.push(...sortedRemoteDependencies.slice(i));
+          }
+
+          if (dependencyToUpdate.name !== dependency.name) {
+            break;
+          }
+
+          if (
+            compareVersions(dependency.version, dependencyToUpdate.version) > 0
+          ) {
+            dependencyToUpdate = dependency;
+          }
+        }
+      }
+
+      if (timeline) {
+        console.log(JSON.stringify(timelineToPrint, null, 2));
+        return;
+      }
+
+      if (dependencyToUpdate === null) {
+        console.log("No new versions found");
+        close({
+          auto: !!auto,
+          cache: !!cache,
+          cacheFile,
+          currentDir,
         });
-        const localDependencies = getDependenciesFromPackageJson({
+        return;
+      }
+
+      console.log(
+        "New version found:",
+        `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
+        `(${dependencyToUpdate.published})`
+      );
+
+      if (update || auto || install) {
+        updatePackageFile({
+          dependencyToUpdate,
           packageFilePath,
         });
-        let sortedRemoteDependencies = await getRemoteDependencies({
-          localDependencies,
-          cache: !!cache || !!auto,
-          cacheFilePath: path.join(currentDir, cacheFile),
-          excludedDependencies,
+      }
+
+      if (install || auto) {
+        installDependency({
+          installScript,
+          currentDir,
         });
+      }
 
-        let previousDependency: Dependency | null = null;
-        let dependencyToUpdate = null;
-        const timelineToPrint: Dependency[] = [];
-        for (let i = 0; i < sortedRemoteDependencies.length; i++) {
-          const dependency = sortedRemoteDependencies[i];
-          if (
-            compareVersions(
-              dependency.version,
-              localDependencies[dependency.name],
-            ) > 0
-          ) {
-            if (dependencyToUpdate === null) {
-              previousDependency = {
-                name: dependency.name,
-                version: localDependencies[dependency.name],
-                published: new Date(),
-              };
-              dependencyToUpdate = dependency;
-              timelineToPrint.push(...sortedRemoteDependencies.slice(i));
-            }
-
-            if (dependencyToUpdate.name !== dependency.name) {
-              break;
-            }
-
-            if (
-              compareVersions(dependency.version, dependencyToUpdate.version) >
-              0
-            ) {
-              dependencyToUpdate = dependency;
-            }
-          }
-        }
-
-        if (timeline) {
-          console.log(JSON.stringify(timelineToPrint, null, 2));
-          return;
-        }
-
-        if (dependencyToUpdate === null) {
-          console.log("No new versions found");
-          close({
-            auto: !!auto,
-            cache: !!cache,
-            cacheFile,
+      if (auto) {
+        try {
+          runTest({
+            testScript,
             currentDir,
           });
-          return;
-        }
+        } catch (e) {
+          if (previousDependency) {
+            console.log("Test failed. Reverting to the previous version...");
+            updatePackageFile({
+              dependencyToUpdate: previousDependency,
+              packageFilePath,
+            });
 
-        console.log(
-          "New version found:",
-          `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-          `(${dependencyToUpdate.published})`,
-        );
-
-        if (update || auto || install) {
-          updatePackageFile({
-            dependencyToUpdate,
-            packageFilePath,
-          });
-        }
-
-        if (install || auto) {
-          installDependency({
-            installScript,
-            currentDir,
-          });
-        }
-
-        if (auto) {
-          try {
-            runTest({
-              testScript,
+            installDependency({
+              installScript,
               currentDir,
             });
-          } catch (e) {
-            if (previousDependency) {
-              console.log("Test failed. Reverting to the previous version");
-              updatePackageFile({
-                dependencyToUpdate: previousDependency,
-                packageFilePath,
-              });
 
-              installDependency({
-                installScript,
-                currentDir,
-              });
-
-              process.exit(1);
-            }
+            process.exit(1);
           }
         }
-      } while (auto);
-    },
-  )
+      }
+    } while (auto);
+  })
   .parse();

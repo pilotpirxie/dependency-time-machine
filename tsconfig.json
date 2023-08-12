@@ -13,7 +13,8 @@
     "declarationMap": true, /* Generates a sourcemap for each corresponding '.d.ts' file. */
     "sourceMap": true, /* Generates corresponding '.map' file. */
     "allowSyntheticDefaultImports": true, /* Allow default imports from modules with no default export. This does not affect code emit, just typechecking. */
-    "checkJs": true /* Enable error reporting in type-checked JavaScript files. */
+    "checkJs": true, /* Enable error reporting in type-checked JavaScript files. */
+    "allowJs": true /* Allow JavaScript files to be a part of your program. Use the `checkJS` option to get errors from these files. */
   },
   "exclude": ["node_modules", "bin", "test"]
 }
