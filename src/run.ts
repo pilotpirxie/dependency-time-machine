@@ -154,6 +154,13 @@ export const run = async ({
             currentDir,
           });
 
+          close({
+            auto: !!auto,
+            cache: !!cache,
+            cacheFile,
+            currentDir,
+          });
+
           process.exit(1);
         }
       }

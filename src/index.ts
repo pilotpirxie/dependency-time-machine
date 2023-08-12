@@ -26,7 +26,7 @@ program
   .option(
     "-cf, --cache-file <file>",
     "Cache file",
-    "./.dependency-time-machine/cache.json"
+    "./.dependency-time-machine-cache.json"
   )
   .option(
     "-e, --exclude <dependency>",
