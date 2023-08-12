@@ -61,7 +61,7 @@ npx dependency-time-machine --update --install --exclude-file exclude.txt
 ```
 
 ## Requirements
-- Node.js >= 14
+- Node.js >= 10
 
 ## How it works
 Tool reads `package.json` file and finds all dependencies. Then it resolves all the versions from registry, sort them by date and
@@ -89,7 +89,9 @@ Options:
   -c, --cache                      Cache resolved dependencies
   -cf, --cache-file <file>         Cache file (default: "./.dependency-time-machine/cache.json")
   -e, --exclude <dependency>       Exclude dependency from update, separated by comma
-  -x, --exclude-file <file>        Exclude dependencies from file (default: "")
+  -x, --exclude-file <file>        Exclude dependencies from file, one per line (default: "")
+  -r, --registry-url <url>         Registry url (default: "https://registry.npmjs.org")
+  -pi, --print-info                Print info about the packages
   -h, --help                       display help for command
 ```
 

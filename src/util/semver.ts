@@ -6,7 +6,7 @@ export const isValidVersion = (version: string): boolean => {
 };
 
 export const parseVersion = (
-  version: string,
+  version: string
 ): [number, number, number, string?] => {
   const match = version.match(strictVersionRegex);
 
@@ -14,7 +14,7 @@ export const parseVersion = (
     throw new Error(`Invalid version: ${version}`);
   }
 
-  return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3]), match[4]];
+  return [parseInt(match[1]), parseInt(match[2]), parseInt(match[3])];
 };
 
 export const compareVersions = (a: string, b: string): number => {

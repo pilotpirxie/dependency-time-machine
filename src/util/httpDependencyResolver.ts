@@ -26,12 +26,12 @@ function fetchJson<T>(url: string): Promise<T> {
 }
 
 export default async function httpDependencyResolver(
-  name: string
+  name: string,
+  registryUrl: string
 ): Promise<Dependency[]> {
+  const url = `${registryUrl}/${name}`;
   try {
-    const response = await fetchJson<RegistryData>(
-      `https://registry.npmjs.org/${name}`
-    );
+    const response = await fetchJson<RegistryData>(url);
     const { time } = response;
 
     const dependencyVersionsWithPublishedDate: Dependency[] = [];
@@ -45,7 +45,7 @@ export default async function httpDependencyResolver(
 
     return dependencyVersionsWithPublishedDate;
   } catch (error) {
-    console.error(`Error fetching data from npm registry for ${name}`);
+    console.error(`Error fetching data ${url}`);
     throw error;
   }
 }
