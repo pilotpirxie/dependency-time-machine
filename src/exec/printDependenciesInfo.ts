@@ -15,12 +15,12 @@ export function printDependenciesInfo({
         localDependencies[dependency.name] &&
         compareVersions(
           localDependencies[dependency.name],
-          dependency.version
+          dependency.version,
         ) === 0
       );
     })
     .sort((a, b) => {
-      return b.published.getTime() - a.published.getTime();
+      return new Date(b.published).getTime() - new Date(a.published).getTime();
     });
 
   const averageReleaseTime =
@@ -38,16 +38,14 @@ export function printDependenciesInfo({
 
   const dependencyCount = Object.keys(localDependencies).length;
 
-  console.log(
-    JSON.stringify(
-      {
-        "Average release time": new Date(averageReleaseTime).toISOString(),
-        "Oldest dependency": oldestDependency,
-        "Newest dependency": newestDependency,
-        "Dependency count": dependencyCount,
-      },
-      null,
-      2
-    )
+  return JSON.stringify(
+    {
+      "Average release time": new Date(averageReleaseTime).toISOString(),
+      "Oldest dependency": oldestDependency,
+      "Newest dependency": newestDependency,
+      "Dependency count": dependencyCount,
+    },
+    null,
+    2,
   );
 }

@@ -6,10 +6,10 @@
 
 # dependency-time-machine
 
-Tool to automatically update dependencies one-by-one in the chronological order. Most dependencies are compatible with other packages
-from the similar or pastime. This tool helps to find the latest compatible version of the dependencies and update them.
+Tool to automatically update dependencies one by one in chronological order. Most dependencies are compatible with other packages
+from a similar time or pastime. This tool helps to find the latest compatible version of the dependencies and update them.
 
-This tool is intend to simulate the typical updating workflow as it was done regularly.
+This tool is intended to simulate the typical updating workflow as it was done regularly.
 
 ## Installation
 Run with npx to find the next recommended dependency to update:
@@ -35,7 +35,7 @@ Basic usage to find the next recommended dependency to update:
 npx dependency-time-machine --update --install
 ```
 
-Automatically update dependencies one-by-one running tests after each update. Tests are run with `npm test` command:
+Automatically update dependencies one-by-one running tests after each update. Tests are run with the `npm test` command:
 ```shell
 npx dependency-time-machine --update --install --auto
 ```
@@ -45,17 +45,17 @@ You can specify custom install and test commands:
 npx dependency-time-machine --update --install --auto --install-script "yarn install" --test-script "yarn test"
 ```
 
-Get timeline of the updates in JSON format:
+Get a timeline of the updates in JSON format:
 ```shell
 npx dependency-time-machine --timeline
 ```
 
-To exclude some dependencies from update, use `--exclude` option:
+To exclude some dependencies from the update, use the `--exclude` option:
 ```shell
 npx dependency-time-machine --update --install --exclude react,react-dom
 ```
 
-or use `--exclude-file` option to exclude dependencies from file:
+or use the `--exclude-file` option to exclude dependencies from the file:
 ```shell
 npx dependency-time-machine --update --install --exclude-file exclude.txt
 ```
@@ -64,9 +64,9 @@ npx dependency-time-machine --update --install --exclude-file exclude.txt
 - Node.js >= 10
 
 ## How it works
-Tool reads `package.json` file and finds all dependencies. Then it resolves all the versions from registry, sort them by date and
-finds the latest version of the dependency before finding another. Searching in version groups allows to spot
-incompatibility between dependencies. Built-in cache and auto mode allows to update dependencies faster.
+The tool reads the `package.json` file and finds all dependencies. Then it resolves all the versions from the registry, sorts them by date and
+finds the latest version of the dependency before finding another. Searching in version groups allows one to spot
+incompatibility between dependencies. Built-in cache and auto mode allow to update dependencies faster.
 
 <div style="text-align: center">
     <img src="img/diagram.png" alt="Diagram">

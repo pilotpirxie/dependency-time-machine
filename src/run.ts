@@ -66,7 +66,7 @@ export const run = async ({
       if (
         compareVersions(
           dependency.version,
-          localDependencies[dependency.name]
+          localDependencies[dependency.name],
         ) > 0
       ) {
         if (dependencyToUpdate === null) {
@@ -97,10 +97,12 @@ export const run = async ({
     }
 
     if (printInfo) {
-      printDependenciesInfo({
-        localDependencies,
-        sortedRemoteDependencies,
-      });
+      console.log(
+        printDependenciesInfo({
+          localDependencies,
+          sortedRemoteDependencies,
+        }),
+      );
       return;
     }
 
@@ -118,7 +120,7 @@ export const run = async ({
     console.log(
       "New version found:",
       `${dependencyToUpdate.name}@${dependencyToUpdate.version}`,
-      `(${dependencyToUpdate.published})`
+      `(${dependencyToUpdate.published})`,
     );
 
     if (update || auto || install) {
@@ -155,7 +157,7 @@ export const run = async ({
           });
 
           close({
-            auto: !!auto,
+            auto: auto,
             cache: !!cache,
             cacheFile,
             currentDir,

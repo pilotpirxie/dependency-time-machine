@@ -7,7 +7,7 @@ export type RegistryData = {
   versions: { [key: string]: Version };
   readme: string;
   maintainers: MaintainerClass[];
-  time: { [key: string]: Date };
+  time: { [key: string]: string };
   author: MaintainerClass;
   repository: Repository;
   users: { [key: string]: boolean };

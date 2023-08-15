@@ -32,7 +32,7 @@ export async function getRemoteDependencies({
       console.log(
         `[${i + 1}/${dependenciesCount}] ${name} ${
           excludedDependencies.includes(name) ? "(excluded)" : ""
-        }`
+        }`,
       );
       if (excludedDependencies.includes(name)) {
         continue;
@@ -42,12 +42,14 @@ export async function getRemoteDependencies({
     }
 
     remoteDependencies = remoteDependencies.filter((dependency) =>
-      isValidVersion(dependency.version)
+      isValidVersion(dependency.version),
     );
 
     const sortedRemoteDependencies = remoteDependencies
       .sort((a, b) => {
-        return b.published.getTime() - a.published.getTime();
+        return (
+          new Date(b.published).getTime() - new Date(a.published).getTime()
+        );
       })
       .reverse();
 
@@ -58,7 +60,7 @@ export async function getRemoteDependencies({
 
       fs.writeFileSync(
         cacheFilePath,
-        JSON.stringify(sortedRemoteDependencies, null, 2)
+        JSON.stringify(sortedRemoteDependencies, null, 2),
       );
     }
 
