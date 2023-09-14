@@ -11,12 +11,14 @@ export async function getRemoteDependencies({
   cacheFilePath,
   excludedDependencies,
   registryUrl,
+  allowNonSemver,
 }: {
   localDependencies: LocalDependencies;
   cache: boolean;
   cacheFilePath: string;
   excludedDependencies: string[];
   registryUrl: string;
+  allowNonSemver: boolean;
 }): Promise<Dependency[]> {
   try {
     const cacheExists = fs.existsSync(cacheFilePath);
@@ -41,8 +43,8 @@ export async function getRemoteDependencies({
       remoteDependencies.push(...newDependency);
     }
 
-    remoteDependencies = remoteDependencies.filter((dependency) =>
-      isValidVersion(dependency.version),
+    remoteDependencies = remoteDependencies.filter(
+      (dependency) => isValidVersion(dependency.version) || allowNonSemver,
     );
 
     const sortedRemoteDependencies = remoteDependencies

@@ -22,6 +22,7 @@ describe("getRemoteDependencies", () => {
       cacheFilePath: "cache.json",
       excludedDependencies: [],
       registryUrl: "",
+      allowNonSemver: false,
     });
 
     expect(existsSync).toHaveBeenCalledWith("cache.json");
@@ -42,6 +43,7 @@ describe("getRemoteDependencies", () => {
       cacheFilePath: "cache.json",
       excludedDependencies: [],
       registryUrl: "",
+      allowNonSemver: false,
     });
 
     expect(existsSync).toHaveBeenCalledWith("cache.json");
@@ -57,6 +59,7 @@ describe("getRemoteDependencies", () => {
       cacheFilePath: "cache.json",
       excludedDependencies: [],
       registryUrl: "",
+      allowNonSemver: false,
     });
 
     expect(dependencies).toBeDefined();
@@ -73,6 +76,7 @@ describe("getRemoteDependencies", () => {
       cacheFilePath: "cache.json",
       excludedDependencies: [],
       registryUrl: "https://registry.npmjs.org",
+      allowNonSemver: false,
     });
 
     expect(dependencies).toBeDefined();

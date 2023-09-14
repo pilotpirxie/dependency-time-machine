@@ -3,7 +3,13 @@ import { getExcludedDependencies } from "./exec/getExcludedDependencies";
 import { getDependenciesFromPackageJson } from "./exec/getDependenciesFromPackageJson";
 import { getRemoteDependencies } from "./exec/getRemoteDependencies";
 import { Dependency } from "./types/Dependency";
-import { compareVersions } from "./util/semver";
+import {
+  compareDates,
+  compareVersions,
+  isHigherMajorVersion,
+  isHigherMinorVersion,
+  isValidVersion,
+} from "./util/semver";
 import { close } from "./exec/close";
 import { updatePackageFile } from "./exec/updatePackageFile";
 import { installDependency } from "./exec/installDependency";
@@ -24,6 +30,9 @@ export const run = async ({
   timeline,
   registryUrl,
   printInfo,
+  allowNonSemver,
+  stopIfHigherMajorNumber,
+  stopIfHigherMinorNumber,
 }: {
   packageFile: string;
   installScript: string;
@@ -38,6 +47,9 @@ export const run = async ({
   timeline: boolean | undefined;
   registryUrl: string;
   printInfo: boolean | undefined;
+  allowNonSemver: boolean | undefined;
+  stopIfHigherMajorNumber: boolean | undefined;
+  stopIfHigherMinorNumber: boolean | undefined;
 }) => {
   const currentDir = process.cwd();
   const packageFilePath = path.join(currentDir, packageFile);
@@ -56,36 +68,69 @@ export const run = async ({
       cacheFilePath: path.join(currentDir, cacheFile),
       excludedDependencies,
       registryUrl,
+      allowNonSemver: !!allowNonSemver,
     });
 
     let previousDependency: Dependency | null = null;
     let dependencyToUpdate = null;
     const timelineToPrint: Dependency[] = [];
+
     for (let i = 0; i < sortedRemoteDependencies.length; i++) {
       const dependency = sortedRemoteDependencies[i];
-      if (
-        compareVersions(
-          dependency.version,
-          localDependencies[dependency.name],
-        ) > 0
-      ) {
+
+      const dependencyToCompare = sortedRemoteDependencies.find(
+        (d) => d.name === dependency.name,
+      );
+
+      if (!dependencyToCompare) {
+        continue;
+      }
+
+      const compareAgainstLocalDependency = !isValidVersion(
+        dependency.version,
+        localDependencies[dependency.name],
+      )
+        ? compareDates(dependency.published, dependencyToCompare.published) > 0
+        : compareVersions(
+            dependency.version,
+            localDependencies[dependency.name],
+          ) > 0;
+
+      if (compareAgainstLocalDependency) {
         if (dependencyToUpdate === null) {
           previousDependency = {
             name: dependency.name,
             version: localDependencies[dependency.name],
-            published: new Date(),
+            published: new Date().toISOString(),
           };
           dependencyToUpdate = dependency;
           timelineToPrint.push(...sortedRemoteDependencies.slice(i));
         }
 
-        if (dependencyToUpdate.name !== dependency.name) {
+        const versioningStop =
+          (stopIfHigherMajorNumber &&
+            isHigherMajorVersion(
+              dependency.version,
+              dependencyToUpdate.version,
+            )) ||
+          (stopIfHigherMinorNumber &&
+            isHigherMinorVersion(
+              dependency.version,
+              dependencyToUpdate.version,
+            ));
+
+        if (dependencyToUpdate.name !== dependency.name || versioningStop) {
           break;
         }
 
-        if (
-          compareVersions(dependency.version, dependencyToUpdate.version) > 0
-        ) {
+        const compareAgainstDependencyToUpdate = !isValidVersion(
+          dependency.version,
+          dependencyToUpdate.version,
+        )
+          ? compareDates(dependency.published, dependencyToUpdate.published) > 0
+          : compareVersions(dependency.version, dependencyToUpdate.version) > 0;
+
+        if (compareAgainstDependencyToUpdate) {
           dependencyToUpdate = dependency;
         }
       }
