@@ -1,8 +1,8 @@
 import path from "path";
-import { getExcludedDependencies } from "./exec/getExcludedDependencies";
-import { getDependenciesFromPackageJson } from "./exec/getDependenciesFromPackageJson";
-import { getRemoteDependencies } from "./exec/getRemoteDependencies";
-import { Dependency } from "./types/Dependency";
+import {getExcludedDependencies} from "./exec/getExcludedDependencies";
+import {getDependenciesFromPackageJson} from "./exec/getDependenciesFromPackageJson";
+import {getRemoteDependencies} from "./exec/getRemoteDependencies";
+import {Dependency} from "./types/Dependency";
 import {
   compareDates,
   compareVersions,
@@ -10,11 +10,11 @@ import {
   isHigherMinorVersion,
   isValidVersion,
 } from "./util/semver";
-import { close } from "./exec/close";
-import { updatePackageFile } from "./exec/updatePackageFile";
-import { installDependency } from "./exec/installDependency";
-import { runTest } from "./exec/runTest";
-import { printDependenciesInfo } from "./exec/printDependenciesInfo";
+import {close} from "./exec/close";
+import {updatePackageFile} from "./exec/updatePackageFile";
+import {installDependency} from "./exec/installDependency";
+import {runTest} from "./exec/runTest";
+import {printDependenciesInfo} from "./exec/printDependenciesInfo";
 
 export const run = async ({
   packageFile,

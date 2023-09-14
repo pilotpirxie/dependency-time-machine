@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import { program } from "commander";
-import { run } from "./run";
+import {program} from "commander";
+import {run} from "./run";
 
 program
   .name("dependency-time-machine")
@@ -46,7 +46,7 @@ program
   .option("-shmn, --stop-if-higher-major-number", "Stop if higher major number")
   .option(
     "-shmnv, --stop-if-higher-minor-number",
-    "Stop if higher minor number",
+    "Stop if higher minor or major number",
   )
   .option("-pi, --print-info", "Print info about the packages")
   .action(run)
