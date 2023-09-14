@@ -79,20 +79,23 @@ Usage: dependency-time-machine [options]
 Tool to automatically update dependencies one-by-one in the time order
 
 Options:
-  -p, --packageFile <file>         Path to package.json file (default: "package.json")
-  -u, --update                     Update package.json file with new versions
-  -is, --install-script <command>  Install with script (default: "npm install")
-  -ts, --test-script <command>     Test command (default: "npm test")
-  -i, --install                    Install with script
-  -t, --timeline                   Print timeline
-  -a, --auto                       Run in auto mode
-  -c, --cache                      Cache resolved dependencies
-  -cf, --cache-file <file>         Cache file (default: "./.dependency-time-machine/cache.json")
-  -e, --exclude <dependency>       Exclude dependency from update, separated by comma
-  -x, --exclude-file <file>        Exclude dependencies from file, one per line (default: "")
-  -r, --registry-url <url>         Registry url (default: "https://registry.npmjs.org")
-  -pi, --print-info                Print info about the packages
-  -h, --help                       display help for command
+  -p, --packageFile <file>               Path to package.json file (default: "package.json")
+  -u, --update                           Update package.json file with new versions
+  -is, --install-script <command>        Install with script (default: "npm install")
+  -ts, --test-script <command>           Test command (default: "npm test")
+  -i, --install                          Install with script
+  -t, --timeline                         Print timeline
+  -a, --auto                             Run in auto mode
+  -c, --cache                            Cache resolved dependencies
+  -ans, --allow-non-semver               Allow non-semver versions (compare with dates then, experimental)
+  -cf, --cache-file <file>               Cache file (default: "./.dependency-time-machine-cache.json")
+  -e, --exclude <dependency>             Exclude dependency from update, separated by comma
+  -r, --registry-url <url>               Registry url (default: "https://registry.npmjs.org")
+  -x, --exclude-file <file>              Exclude dependencies from file, one per line (default: "")
+  -shmn, --stop-if-higher-major-number   Stop if higher major number
+  -shmnv, --stop-if-higher-minor-number  Stop if higher minor or major number
+  -pi, --print-info                      Print info about the packages
+  -h, --help                             display help for command
 ```
 
 ## License
