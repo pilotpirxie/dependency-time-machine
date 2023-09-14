@@ -38,7 +38,7 @@ describe("updatePackageFile", () => {
       dependencyToUpdate: {
         name: "react",
         version: "17.0.2",
-        published: new Date(),
+        published: new Date().toISOString(),
       },
       packageFilePath: "/",
     });

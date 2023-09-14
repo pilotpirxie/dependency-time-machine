@@ -27,7 +27,7 @@ function fetchJson<T>(url: string): Promise<T> {
 
 export default async function httpDependencyResolver(
   name: string,
-  registryUrl: string
+  registryUrl: string,
 ): Promise<Dependency[]> {
   const url = `${registryUrl}/${name}`;
   try {
@@ -39,7 +39,7 @@ export default async function httpDependencyResolver(
       dependencyVersionsWithPublishedDate.push({
         name,
         version,
-        published: new Date(published),
+        published: new Date(published).toISOString(),
       });
     }
 

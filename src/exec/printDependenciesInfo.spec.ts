@@ -19,12 +19,12 @@ describe("printDependenciesInfo", () => {
         {
           name: "react",
           version: "17.0.2",
-          published: new Date("2021-03-18T16:10:00.000Z"),
+          published: new Date("2021-03-18T16:10:00.000Z").toISOString(),
         },
         {
           name: "react-dom",
           version: "17.0.2",
-          published: new Date("2021-03-18T16:00:00.000Z"),
+          published: new Date("2021-03-18T16:00:00.000Z").toISOString(),
         },
       ],
     });
