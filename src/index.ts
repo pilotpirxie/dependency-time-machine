@@ -23,7 +23,7 @@ program
   .option("-t, --timeline", "Print timeline")
   .option("-a, --auto", "Run in auto mode")
   .option("-c, --cache", "Cache resolved dependencies")
-  .option("-ans, --allow-non-semver", "Allow non-semver versions")
+  .option("-ans, --allow-non-semver", "Allow non-semver versions (compare with dates then, experimental)")
   .option(
     "-cf, --cache-file <file>",
     "Cache file",

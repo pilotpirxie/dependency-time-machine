@@ -87,7 +87,7 @@ Options:
   -t, --timeline                         Print timeline
   -a, --auto                             Run in auto mode
   -c, --cache                            Cache resolved dependencies
-  -ans, --allow-non-semver               Allow non-semver versions
+  -ans, --allow-non-semver               Allow non-semver versions (compare with dates then, experimental)
   -cf, --cache-file <file>               Cache file (default: "./.dependency-time-machine-cache.json")
   -e, --exclude <dependency>             Exclude dependency from update, separated by comma
   -r, --registry-url <url>               Registry url (default: "https://registry.npmjs.org")
