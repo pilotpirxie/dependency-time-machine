@@ -1,6 +1,6 @@
 import { LocalDependencies } from "../types/LocalDependencies";
 import { Dependency } from "../types/Dependency";
-import { compareVersions } from "../util/semver";
+import { compareVersions, isValidVersion } from "../util/semver";
 
 export function printDependenciesInfo({
   localDependencies,
@@ -11,8 +11,11 @@ export function printDependenciesInfo({
 }) {
   const remoteInfoAboutLocalDependencies = sortedRemoteDependencies
     .filter((dependency) => {
+      
       return (
-        localDependencies[dependency.name] &&
+        localDependencies[dependency.name] && 
+        isValidVersion(localDependencies[dependency.name]) && 
+        isValidVersion(dependency.version) &&
         compareVersions(
           localDependencies[dependency.name],
           dependency.version,
